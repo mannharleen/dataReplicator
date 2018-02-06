@@ -10,7 +10,7 @@ object sparkUtils {
     spark
   }
 
-  def setSparkJDBCProp(spark: SparkSession, table: String, userDB:String, passwordDB:String, jdbcDriverDB:String): java.util.Properties = {
+  def setSparkJDBCProp(spark: SparkSession, userDB:String, passwordDB:String, jdbcDriverDB:String): java.util.Properties = {
     val prop = new java.util.Properties()
     prop.setProperty("user",userDB)
     prop.setProperty("password",passwordDB)
