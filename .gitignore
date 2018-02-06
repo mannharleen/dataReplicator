@@ -6,5 +6,6 @@ src/main/Resources/*
 target/*
 *.class
 *.log
-
-
+metastore_db/*
+spark-warehouse/*
+*.sc

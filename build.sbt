@@ -3,7 +3,8 @@ name := "dataReplicator"
 
 version := "0.1"
 
-scalaVersion := "2.12.4"
+//scalaVersion := "2.12.4"
+scalaVersion := "2.11.12"
 
 //sbtVersion := "0.13.0"
 //sbtVersion := "1.0.0-M4"
@@ -18,7 +19,11 @@ scalaVersion := "2.12.4"
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.4" % "test"
 libraryDependencies += "com.typesafe" % "config" % "1.3.1"
 libraryDependencies += "org.apache.hive" % "hive-jdbc" % "1.0.0"
+//libraryDependencies += "org.apache.hive" % "hive-jdbc" % "1.2.1"
 libraryDependencies += "org.apache.spark" % "spark-core_2.11" % "2.2.1"
+libraryDependencies += "org.apache.spark" % "spark-sql_2.11" % "2.2.1"
+libraryDependencies += "org.apache.spark" % "spark-hive_2.11" % "2.2.1"
+
 
 //libraryDependencies += "org.apache.logging.log4j" % "log4j-api" % "2.10.0"
 //libraryDependencies += "org.apache.logging.log4j" % "log4j-core" % "2.10.0"
@@ -41,9 +46,7 @@ libraryDependencies ++= Seq(
   "org.apache.avro"  %  "avro"  %  "1.7.7",
   "com.univocity"  %  "univocity-parsers"  %  "2.5.9",
   "org.json"  %  "json" % "20171018"
-  //"org.apache.spark" %% "spark-core" % "2.2.1",
-  //"org.apache.spark" %% "spark-sql" % "2.2.1"
-  //"com.eed3si9n" %% "sbt-assembly" % "0.14.6"
+    //"com.eed3si9n" %% "sbt-assembly" % "0.14.6"
 )
 
 

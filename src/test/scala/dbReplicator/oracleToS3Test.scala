@@ -1,9 +1,11 @@
 package dbReplicator
 import dbReplicator.oracleToS3._
-import org.scalatest.FunSuite
+import org.apache.spark.sql.SparkSession
+import org.scalatest.{BeforeAndAfter, FunSuite}
+
 import scala.collection.JavaConverters._
 
-class oracleToS3Test extends FunSuite{
+class oracleToS3Test extends FunSuite with BeforeAndAfter{
 
   //check connection with Oracle DB
   test("!!! T001: connection to Oracle DB") {
@@ -26,6 +28,8 @@ class oracleToS3Test extends FunSuite{
 
   // check all tables exist on hive
   test("!!! T005: tables exists on hive DB") {
+    pending
+    //todo: This is being skipped because for the current local hive metastore DB, no thrift server is running to connect to. Finally, need to provide hive jdbc/thrift IP - typically running on EMR master-node:10000
     oracleToS3.checkHiveTables(jdbcCommon.createConnection(jdbcHive, userHive, passwordHive), tableListHive)
   }
 
@@ -37,10 +41,26 @@ class oracleToS3Test extends FunSuite{
   }
 
   // check all tables exist on hive
-  test("!!! T007: tables DOES NOT exist on hive DB") {
+  test("!!! T007: tables DOES NOT exist on hive DB (intercept exception)") {
     intercept[AssertionError] {
       oracleToS3.checkHiveTables(jdbcCommon.createConnection(jdbcHive, userHive, passwordHive), List("schema.table"))
     }
   }
 
+  //check that number of input tables is the same
+  test("!!! T008: number of input tables is the same (intercept exception)") {
+    intercept[AssertionError] {
+      oracleToS3.checkTableCounts(List(), List("abc"))
+    }
+  }
+
+  /*var spark: SparkSession = null
+  before {
+    spark = sparkUtils.createSparkSession
+  }*/
+  val spark = sparkUtils.createSparkSession
+  //baseOnly
+  test("!!! T009: obtain columns from hive") {
+    replicationTypeBaseOnly(spark, (tableListDB(0) ,tableListHive(0)))
+  }
 }
