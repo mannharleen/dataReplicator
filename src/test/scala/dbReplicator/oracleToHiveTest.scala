@@ -29,7 +29,6 @@ class oracleToHiveTest extends FunSuite with BeforeAndAfter {
 
   // check all tables exist on hive
   test("!!! T005: tables exists on hive DB") {
-    //todo: DONE? This is being skipped because for the current local hive metastore DB, no thrift server is running to connect to. Finally, need to provide hive jdbc/thrift IP - typically running on EMR master-node:10000
     //oracleToS3.checkHiveTables(jdbcCommon.createConnection(jdbcHive, userHive, passwordHive), tableListHive)
     oracleToHive.checkHiveTables(spark, tableListHive)
   }
@@ -58,6 +57,6 @@ class oracleToHiveTest extends FunSuite with BeforeAndAfter {
 
   //baseOnly
   test("!!! T009: obtain columns from hive") {
-    replicationTypeBaseOnly(spark, (tableListDB(0) ,tableListHive(0)))
+    replicationTypeBaseOnly(spark, (tableListDB(0) ,tableListHive(0)), 1)
   }
 }

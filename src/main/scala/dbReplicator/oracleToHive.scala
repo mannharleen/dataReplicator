@@ -53,17 +53,23 @@ object oracleToHive {
     assert(tableListDB.length == tableListHive.length, s"ERROR: Number of input tables for DB and Hive are not equal. tableCountDB = ${tableListDB.length} tableCountHive = ${tableListHive.length}")
   }
 
-  def replicationTypeBaseOnly(spark: SparkSession, tableZip: (String, String)): Unit = {
-    //val dfHive = spark.read.table(s"${tableZip._2}")
+  def replicationTypeBaseOnly(spark: SparkSession, tableZip: (String, String), limit: Int = 0): Unit = {
+    val dfHive = spark.read.table(s"${tableZip._2}")
     val dfDB = spark.read.jdbc(jdbcDB,tableZip._1, prop)
-    //SPARK BUG
-    //the next line does not work due to a spark bug: https://www.cloudera.com/documentation/enterprise/release-notes/topics/cdh_rn_spark_ki.html#ki_sparksql_dataframe_saveastable
-    //dfDB.write.mode("append").format("parquet").saveAsTable(tableZip._2)
-    //use workaround:
-    dfDB.createOrReplaceTempView("temp_table")
-    spark.sql(s"insert into table ${tableZip._2} select * from temp_table")
-    spark.catalog.dropTempView("temp_table")
-    println(s"logger: INFO: DB to Hive for ${tableZip._1} completed")
+    if (dfHive.schema.fields.length != dfDB.schema.fields.length) {
+      println(s"logger: WARNING: DB and Hive number of columns do not match for DB,Hive: $tableZip - skipping this table !! ")
+    }
+    else {
+      //SPARK BUG
+      //the next line does not work due to a spark bug: https://www.cloudera.com/documentation/enterprise/release-notes/topics/cdh_rn_spark_ki.html#ki_sparksql_dataframe_saveastable
+      //dfDB.write.mode("append").format("parquet").saveAsTable(tableZip._2)
+      //use workaround:
+      if (limit > 0) dfDB.limit(limit).createOrReplaceTempView("temp_table") else dfDB.createOrReplaceTempView("temp_table")
+      spark.sql(s"insert into table ${tableZip._2} select * from temp_table")
+      spark.catalog.dropTempView("temp_table")
+      println(s"logger: INFO: DB to Hive for ${tableZip._1} completed")
+    }
+
     ()
   }
 
@@ -110,7 +116,6 @@ object oracleToHive {
       })
     }
     //TODO Master list:
-    // use spark catalog to check existence of hive tables
     // next task is to use futures and parallelize the baseOnly replication for 2 tables
 
 
