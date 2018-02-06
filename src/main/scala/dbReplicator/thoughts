@@ -1,0 +1,29 @@
+package oracleCDCtoS3
+
+assumption: it is assumed that all tables regarless of cdc-type being used exist on hive
+
+Story:
+    User inputs using application.conf:
+        DB connection
+        DL connection
+        DB schema.table names
+        hive schema.table names
+        type: base only, base+cdc, cdc only
+
+    For each table (parallelize)
+        if type = base
+            copy all data into df
+            save the df into the hive metastore _base table
+            take note of the max SCN. call it max_SCN_base
+        if type = cdc
+            obtain all columns from DB/hive metastore??
+            create logminer query (use SCN > max_SCN_base OR max_SCN_cdc)
+            execute logminer query
+            save the cdc data into hive metastore _cdc table
+            take note of the max SCN. call it max_SCN_cdc. save this somewhere for next run
+
+     Note on hive metastore:
+        for every table it is recommended to create two hive tables. e.g. for table T1 create
+            T1_base: same schema as that of T1
+            T1_cdc: few cdc columns + same schema as that of T1
+
