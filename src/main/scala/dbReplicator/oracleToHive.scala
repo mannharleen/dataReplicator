@@ -5,6 +5,9 @@ import org.apache.spark.sql
 import org.apache.spark.sql.SparkSession
 
 import scala.collection.JavaConverters._
+import scala.concurrent.{Await, Future}
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
 
 object oracleToHive {
   val conf = ConfigFactory.load
@@ -15,8 +18,9 @@ object oracleToHive {
   //val jdbcHive: String = s"""jdbc:hive2://${conf.getString("prod.hive.ip")}:${conf.getString("prod.hive.port")}"""
   //val userHive: String = conf.getString("prod.hive.username")
   //val passwordHive: String = conf.getString("prod.hive.password")
-  val tableListDB: List[String] = conf.getStringList("prod.db.tables").asScala.toList
-  val tableListHive: List[String] = conf.getStringList("prod.hive.tables").asScala.toList
+  val tableListDB: List[String] = conf.getStringList("prod.db.tables").asScala.toList.map(x=> x.toUpperCase())
+  val tableListHive: List[String] = conf.getStringList("prod.hive.tables").asScala.toList.map(x=> x.toUpperCase())
+  val tableZipList: List[(String, String)] = tableListDB zip tableListHive
   val replicationType: String = conf.getString("userInput.replicationType")
   var prop: java.util.Properties = _
 
@@ -73,8 +77,8 @@ object oracleToHive {
     ()
   }
 
-  def startSpark: SparkSession = {
-    val spark = sparkUtils.createSparkSession()
+  def startSpark(local: Boolean = false): SparkSession = {
+    val spark = sparkUtils.createSparkSession(local)
     prop = sparkUtils.setSparkJDBCProp(spark, userDB, passwordDB, jdbcDriverDB)
     spark
   }
@@ -87,7 +91,7 @@ object oracleToHive {
     checkDLConnection
 
     //initialize spark
-    lazy val spark = startSpark
+    lazy val spark = startSpark()
 
     //check connection with hive
     checkHiveConnection(spark)
@@ -106,13 +110,13 @@ object oracleToHive {
     checkTableCounts(tableListDB, tableListHive)
 
     // action begins here
-    val tableZipList: List[(String, String)] = tableListDB zip tableListHive
 
     //baseOnly
     if (replicationType == "baseOnly") {
       //for each table begin replication
       tableZipList.foreach(tableZip => {
-        replicationTypeBaseOnly(spark, tableZip)
+        val future_replicationTypeBaseOnly = Future(replicationTypeBaseOnly(spark, tableZip))
+        Await.result(future_replicationTypeBaseOnly, 24 hours)
       })
     }
     //TODO Master list:

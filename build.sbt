@@ -1,19 +1,10 @@
 name := "dataReplicator"
-
-
 version := "0.1"
 
 //scalaVersion := "2.12.4"
 scalaVersion := "2.11.12"
 
-//sbtVersion := "0.13.0"
-//sbtVersion := "1.0.0-M4"
-
-/*resolvers ++= Seq(
-  "Twitter Maven Repo" at "http://maven.twttr.com"
-)*/
-
-//resolvers ++= Seq(Resolver.sbtPluginRepo("releases"), Resolver.sbtPluginRepo("snapshots"))
+javaOptions in Test += "-Dspark.master=local[*]"
 
 //libraryDependencies += "org.apache.hadoop" % "hadoop-hdfs" % "2.7.1"
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.4" % "test"

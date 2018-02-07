@@ -6,7 +6,7 @@ import org.scalatest.{BeforeAndAfter, FunSuite}
 import scala.collection.JavaConverters._
 
 class oracleToHiveTest extends FunSuite with BeforeAndAfter {
-  val spark = startSpark
+  val spark = startSpark(true)
 
   //check connection with Oracle DB
   test("!!! T001: connection to Oracle DB") {
@@ -56,7 +56,10 @@ class oracleToHiveTest extends FunSuite with BeforeAndAfter {
   }
 
   //baseOnly
-  test("!!! T009: obtain columns from hive") {
-    replicationTypeBaseOnly(spark, (tableListDB(0) ,tableListHive(0)), 1)
+  test("!!! T009: Replicate 1 row: replicationTypeBaseOnly") {
+    tableZipList.foreach( tableZip => {
+      replicationTypeBaseOnly(spark, (tableZip._1 ,tableZip._2), 1)
+    })
+
   }
 }

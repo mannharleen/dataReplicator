@@ -4,8 +4,10 @@ import org.apache.spark.sql.SparkSession
 
 object sparkUtils {
 
-  def createSparkSession(): SparkSession = {
-    val spark = SparkSession.builder.appName("dbReplicator").enableHiveSupport().getOrCreate()
+  def createSparkSession(local: Boolean = false): SparkSession = {
+    val spark = if (local == true)
+      SparkSession.builder.appName("dbReplicator").enableHiveSupport().master("local[*]").getOrCreate() else
+      SparkSession.builder.appName("dbReplicator").enableHiveSupport().getOrCreate()
     spark.conf.get("spark.sql.hive.metastore.version")
     spark
   }
