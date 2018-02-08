@@ -58,7 +58,7 @@ class oracleToHiveTest extends FunSuite with BeforeAndAfter {
   //baseOnly
   test("!!! T009: Replicate 1 row: replicationTypeBaseOnly") {
     tableZipList.foreach( tableZip => {
-      replicationTypeBaseOnly(spark, (tableZip._1 ,tableZip._2), 1)
+      replicationTypeBaseOnly(spark, (tableZip._1 ,tableZip._2), limit = 1)
     })
 
   }
