@@ -3,6 +3,7 @@ package dbReplicator
 import com.typesafe.config.ConfigFactory
 import org.apache.spark.sql
 import org.apache.spark.sql.SparkSession
+import scala.util.{Success,Failure}
 
 import scala.collection.JavaConverters._
 import scala.concurrent.{Await, Future}
@@ -57,23 +58,29 @@ object oracleToHive {
     assert(tableListDB.length == tableListHive.length, s"ERROR: Number of input tables for DB and Hive are not equal. tableCountDB = ${tableListDB.length} tableCountHive = ${tableListHive.length}")
   }
 
-  def replicationTypeBaseOnly(spark: SparkSession, tableZip: (String, String), limit: Int = 0): Unit = {
+  def replicateBase(spark: SparkSession, tableZip: (String, String), limit: Int = 0): Unit =  {
     val dfHive = spark.read.table(s"${tableZip._2}")
-    val dfDB = spark.read.jdbc(jdbcDB,tableZip._1, prop)
-    if (dfHive.schema.fields.length != dfDB.schema.fields.length) {
-      println(s"logger: WARNING: DB and Hive number of columns do not match for DB,Hive: $tableZip - skipping this table !! ")
-    }
-    else {
-      //SPARK BUG
-      //the next line does not work due to a spark bug: https://www.cloudera.com/documentation/enterprise/release-notes/topics/cdh_rn_spark_ki.html#ki_sparksql_dataframe_saveastable
-      //dfDB.write.mode("append").format("parquet").saveAsTable(tableZip._2)
-      //use workaround:
-      if (limit > 0) dfDB.limit(limit).createOrReplaceTempView("temp_table") else dfDB.createOrReplaceTempView("temp_table")
-      spark.sql(s"insert into table ${tableZip._2} select * from temp_table")
-      spark.catalog.dropTempView("temp_table")
-      println(s"logger: INFO: DB to Hive for ${tableZip._1} completed")
-    }
-
+    // Must cast as Number(30,0) or else spark schema reads as Number(30,10). this is due to an Oracle buh
+    // details of the Oracle bug can be found at: https://support.oracle.com/knowledge/Oracle%20Database%20Products/1266785_1.html
+    val dfDB = spark.read.jdbc(jdbcDB,s"(select A.*, CAST(A.ora_rowscn AS NUMBER(30,0)) as rowscn from ${tableZip._1} A)", prop)
+    //
+    var maxRowScn: java.math.BigDecimal = java.math.BigDecimal.valueOf(0)
+    assert(dfHive.schema.fields.length == dfDB.schema.fields.length, s"logger: WARNING: DB and Hive number of columns do not match for DB,Hive: $tableZip - skipping this table !! ")
+    //
+    //SPARK BUG
+    //the next line does not work due to a spark bug: https://www.cloudera.com/documentation/enterprise/release-notes/topics/cdh_rn_spark_ki.html#ki_sparksql_dataframe_saveastable
+    //dfDB.write.mode("append").format("parquet").saveAsTable(tableZip._2)
+    //use WORKAROUND:
+    if (limit > 0) dfDB.limit(limit).createOrReplaceTempView("temp_table") else dfDB.createOrReplaceTempView("temp_table")
+    spark.sql(s"insert into table ${tableZip._2} select * from temp_table")
+    //
+    maxRowScn = Option(spark.sql("select max(rowscn) from temp_table").first().getAs[java.math.BigDecimal](0) ).getOrElse(java.math.BigDecimal.valueOf(0))
+    spark.sql("create table if not exists default.scn_hist (table_name string, rowscn bigint, ts string) row format delimited fields terminated by ',' stored as textfile")
+    spark.sql(s"insert into default.scn_hist select '${tableZip._1}', max(rowscn), from_unixtime(unix_timestamp()) from temp_table")
+    //
+    spark.catalog.dropTempView("temp_table")
+    //
+    println(s"logger: INFO: max SCN for ${tableZip._1} is $maxRowScn")
     ()
   }
 
@@ -113,14 +120,24 @@ object oracleToHive {
 
     //baseOnly
     if (replicationType == "baseOnly") {
-      //for each table begin replication
       tableZipList.foreach(tableZip => {
-        val future_replicationTypeBaseOnly = Future(replicationTypeBaseOnly(spark, tableZip))
-        Await.result(future_replicationTypeBaseOnly, 24 hours)
+        println(s"logger: INFO: Starting replicateBase for ${tableZip._1}")
+        //val future_replicateBase = replicateBase(spark, tableZip)
+        val future_replicateBase = Future(replicateBase(spark, ("a","b")))
+        Await.result(future_replicateBase, 24 hours)
+        future_replicateBase.onComplete {
+          case Success(s) => println(s"logger: INFO: replicateBase for ${tableZip._1} completed")
+          case Failure(e) => println(s"logger: WARNING: replicateBase for ${tableZip._1} FAILED !!"); e.printStackTrace()
+        }
       })
-    }
+    } /*else if (replicationType == "cdcOnly") {
+      tableZipList.foreach(tableZip => {
+        val future_replicateCdc = replicateCdc(spark, tableZip)
+        Await.result(future_replicateCdc, 24 hours)
+      })
+    }*/
     //TODO Master list:
-    // next task is to use futures and parallelize the baseOnly replication for 2 tables
+    //
 
 
   }

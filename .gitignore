@@ -2,7 +2,8 @@
 lib/*
 project/target/*
 project/project/*
-src/main/Resources/*
+src/main/Resources/*.xml
+src/main/Resources/*.conf
 target/*
 *.class
 *.log

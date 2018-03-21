@@ -1,11 +1,15 @@
 package dbReplicator
 import dbReplicator.oracleToHive._
 import org.apache.spark.sql.SparkSession
+import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{BeforeAndAfter, FunSuite}
+import scala.concurrent.ExecutionContext.Implicits.global
 
 import scala.collection.JavaConverters._
+import scala.concurrent.Future
+import scala.util.{Failure, Success}
 
-class oracleToHiveTest extends FunSuite with BeforeAndAfter {
+class oracleToHiveTest extends FunSuite with BeforeAndAfter with ScalaFutures{
   val spark = startSpark(true)
 
   //check connection with Oracle DB
@@ -58,8 +62,18 @@ class oracleToHiveTest extends FunSuite with BeforeAndAfter {
   //baseOnly
   test("!!! T009: Replicate 1 row: replicationTypeBaseOnly") {
     tableZipList.foreach( tableZip => {
-      replicationTypeBaseOnly(spark, (tableZip._1 ,tableZip._2), limit = 1)
+      replicateBase(spark, (tableZip._1 ,tableZip._2), limit = 1)
     })
-
   }
+  //baseOnly Exception
+  test("!!! T010: error in baseOnly Future (intercept exception)") {
+    tableZipList.foreach( tableZip => {
+      intercept[Exception] {
+        val future = Future(replicateBase(spark, (tableZip._1 ,"nonExisitngTable"), limit = 1))
+        future.onFailure{case e => throw e}
+        //ScalaFutures.whenReady(future.failed) { e: Exception => assert(1 == 1)}
+      }
+    })
+  }
+
 }

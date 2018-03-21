@@ -1,0 +1,13 @@
+//userInput.CDCtype should be one of baseOnly, cdcOnly, baseAndCdc
+userInput.replicationType=baseOnly
+//prod.db
+prod.db.ip=
+prod.db.port=1521
+prod.db.sid=
+prod.db.username=
+prod.db.password=
+prod.db.driver=oracle.jdbc.driver.OracleDriver
+prod.db.tables=["",""]
+prod.hive.tables=["", ""]
+//log
+log.dir="./"
